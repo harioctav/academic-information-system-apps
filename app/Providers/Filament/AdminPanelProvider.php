@@ -20,39 +20,53 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
-    public function panel(Panel $panel): Panel
-    {
-        return $panel
-            ->default()
-            ->id('admin')
-            ->path('admin')
-            ->login()
-            ->colors([
-                'primary' => Color::Amber,
-            ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
-            ->pages([
-                Pages\Dashboard::class,
-            ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
-            ])
-            ->middleware([
-                EncryptCookies::class,
-                AddQueuedCookiesToResponse::class,
-                StartSession::class,
-                AuthenticateSession::class,
-                ShareErrorsFromSession::class,
-                VerifyCsrfToken::class,
-                SubstituteBindings::class,
-                DisableBladeIconComponents::class,
-                DispatchServingFilamentEvent::class,
-            ])
-            ->authMiddleware([
-                Authenticate::class,
-            ]);
-    }
+  public function panel(Panel $panel): Panel
+  {
+    return $panel
+      ->default()
+      ->id('admin')
+      ->path('admin')
+      ->login()
+      ->colors([
+        'primary' => '#3498DB',
+        'danger' => Color::Rose,
+        'gray' => Color::Gray,
+        'info' => Color::Sky,
+        'success' => Color::Emerald,
+        'warning' => Color::Orange,
+        'secondary' => '#2C3E50'
+      ])
+      ->font('Poppins')
+      ->profile()
+      ->brandLogo(fn() => view('components.brand-logo'))
+      ->favicon(asset('assets/images/logos/logo.png'))
+      ->sidebarFullyCollapsibleOnDesktop()
+      ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+      ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+      ->pages([
+        Pages\Dashboard::class,
+      ])
+      ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+      ->widgets([
+        Widgets\AccountWidget::class,
+        Widgets\FilamentInfoWidget::class,
+      ])
+      ->middleware([
+        EncryptCookies::class,
+        AddQueuedCookiesToResponse::class,
+        StartSession::class,
+        AuthenticateSession::class,
+        ShareErrorsFromSession::class,
+        VerifyCsrfToken::class,
+        SubstituteBindings::class,
+        DisableBladeIconComponents::class,
+        DispatchServingFilamentEvent::class,
+      ])
+      ->authMiddleware([
+        Authenticate::class,
+      ])
+      ->plugins([
+        \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make()
+      ]);
+  }
 }
