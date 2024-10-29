@@ -37,7 +37,6 @@ class UserResource extends Resource implements HasShieldPermissions
       'delete_any',
     ];
   }
-
   public static function form(Form $form): Form
   {
     return $form
@@ -55,12 +54,6 @@ class UserResource extends Resource implements HasShieldPermissions
               ->unique(ignoreRecord: true)
               ->required()
               ->maxLength(255),
-            // Forms\Components\TextInput::make('phone')
-            //   ->label(trans('pages-users::page.label.phone'))
-            //   ->nullable()
-            //   ->unique(ignoreRecord: true)
-            //   ->tel()
-            //   ->maxLength(25),
 
             PhoneInput::make('phone')
               ->defaultCountry('ID')
