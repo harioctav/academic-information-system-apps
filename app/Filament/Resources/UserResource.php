@@ -6,7 +6,6 @@ use App\Enums\AccountStatus;
 use App\Enums\UserRole;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
-use App\Models\Role;
 use App\Models\User;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
@@ -16,15 +15,12 @@ use Filament\Resources\Resource;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Livewire\WithFileUploads;
-use Laravel\Jetstream\Features;
-use Illuminate\Support\Facades\Storage;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
+use Illuminate\Support\Collection;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
+use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
+use Ysfkaya\FilamentPhoneInput\Tables\PhoneColumn;
 
 class UserResource extends Resource implements HasShieldPermissions
 {
@@ -59,12 +55,20 @@ class UserResource extends Resource implements HasShieldPermissions
               ->unique(ignoreRecord: true)
               ->required()
               ->maxLength(255),
-            Forms\Components\TextInput::make('phone')
-              ->label(trans('pages-users::page.label.phone'))
+            // Forms\Components\TextInput::make('phone')
+            //   ->label(trans('pages-users::page.label.phone'))
+            //   ->nullable()
+            //   ->unique(ignoreRecord: true)
+            //   ->tel()
+            //   ->maxLength(25),
+
+            PhoneInput::make('phone')
+              ->defaultCountry('ID')
               ->nullable()
               ->unique(ignoreRecord: true)
-              ->tel()
-              ->maxLength(25),
+              ->live()
+              ->displayNumberFormat(PhoneInputNumberType::E164),
+
           ])->columns(3),
 
         Forms\Components\Grid::make(2)
@@ -122,10 +126,12 @@ class UserResource extends Resource implements HasShieldPermissions
         Tables\Columns\TextColumn::make('email')
           ->label(trans('pages-users::page.label.email'))
           ->searchable(),
-        Tables\Columns\TextColumn::make('phone')
+        PhoneColumn::make('phone')
           ->label(trans('pages-users::page.label.phone'))
+          ->displayFormat(PhoneInputNumberType::E164)
+          ->getStateUsing(fn(Model $record) => $record->phone ?: '-')
           ->searchable()
-          ->getStateUsing(fn(Model $record) => $record->phone ?: '-'),
+          ->toggleable(isToggledHiddenByDefault: true),
         Tables\Columns\TextColumn::make('roles.name')
           ->badge()
           ->getStateUsing(function (Model $record) {
@@ -153,7 +159,26 @@ class UserResource extends Resource implements HasShieldPermissions
           ->toggleable(isToggledHiddenByDefault: true),
       ])
       ->filters([
-        //
+        Tables\Filters\SelectFilter::make(trans('filament-shield::filament-shield.resource.label.role'))
+          ->label(trans('pages-users::page.label.filter.roles'))
+          ->relationship('roles', 'name')
+          ->searchable()
+          ->preload()
+          ->getOptionLabelFromRecordUsing(
+            fn(Model $record) => UserRole::from($record->name)->getLabel()
+          )
+          ->indicator(trans('filament-shield::filament-shield.resource.label.role')),
+
+        Tables\Filters\SelectFilter::make('status')
+          ->label(trans('pages-users::page.label.filter.status'))
+          ->options(
+            Collection::make(AccountStatus::cases())
+              ->mapWithKeys(
+                fn(AccountStatus $enum) => [$enum->value => $enum->getLabel()]
+              )
+          )
+          ->indicator('Status')
+          ->native(false),
       ])
       ->actions([
         Tables\Actions\ActionGroup::make([
@@ -179,8 +204,7 @@ class UserResource extends Resource implements HasShieldPermissions
               Notification::make()
                 ->success()
                 ->title(trans('notification.delete.title'))
-                ->body(trans('notification.delete.body', ['label' => trans('pages-users::page.resource.label.user')]))
-                ->send(),
+                ->body(trans('notification.delete.body', ['label' => trans('pages-users::page.resource.label.user')])),
             ),
         ])
           ->button()
@@ -193,7 +217,16 @@ class UserResource extends Resource implements HasShieldPermissions
         ]),
       ])
       ->defaultPaginationPageOption(5)
-      ->recordUrl(null);
+      ->recordUrl(null)
+      ->checkIfRecordIsSelectableUsing(
+        fn(Model $record): bool => $record->roles->implode('name') !== UserRole::SuperAdmin->value
+      )
+      ->groups([
+        Tables\Grouping\Group::make('created_at')
+          ->label(trans('pages-users::page.label.group.created_at'))
+          ->date()
+          ->collapsible(),
+      ]);
   }
 
   public static function getRelations(): array

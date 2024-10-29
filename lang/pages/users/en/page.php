@@ -17,4 +17,7 @@ return  [
   'label.email_verified_at' => 'Verified At',
   'label.created_at' => 'Created At',
   'label.updated_at' => 'Updated At',
+  'label.filter.roles' => 'Filter by Roles',
+  'label.filter.status' => 'Filter by Status',
+  'label.group.created_at' => 'Created At',
 ];

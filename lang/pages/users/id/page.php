@@ -17,4 +17,7 @@ return  [
   'label.email_verified_at' => 'Verifikasi Pada',
   'label.created_at' => 'Dibuat Pada',
   'label.updated_at' => 'Diubah Pada',
+  'label.filter.roles' => 'Filter berdasarkan Peran',
+  'label.filter.status' => 'Filter berdasarkan Status',
+  'label.group.created_at' => 'Tanggal Dibuat',
 ];

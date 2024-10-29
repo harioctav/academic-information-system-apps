@@ -7,6 +7,7 @@ use App\Filament\Resources\UserResource;
 use App\Models\Role;
 use Filament\Actions;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Support\Enums\ActionSize;
 use Illuminate\Support\Facades\Hash;
@@ -33,6 +34,15 @@ class CreateUser extends CreateRecord
   {
     $data['password'] = Hash::make('password@123');
     return $data;
+  }
+
+  protected function getSavedNotification(): ?Notification
+  {
+    return Notification::make()
+      ->success()
+      ->title(trans('notification.create.title'))
+      ->body(trans('notification.create.body', ['label' => trans('pages-users::page.resource.label.user')]))
+      ->send();
   }
 
   protected function getRedirectUrl(): string
