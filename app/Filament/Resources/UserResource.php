@@ -2,17 +2,29 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\AccountStatus;
+use App\Enums\UserRole;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
+use App\Models\Role;
 use App\Models\User;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Livewire\WithFileUploads;
+use Laravel\Jetstream\Features;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 
 class UserResource extends Resource implements HasShieldPermissions
 {
@@ -34,33 +46,66 @@ class UserResource extends Resource implements HasShieldPermissions
   {
     return $form
       ->schema([
-        Forms\Components\TextInput::make('uuid')
-          ->label('UUID')
-          ->required()
-          ->maxLength(255),
-        Forms\Components\TextInput::make('name')
-          ->required()
-          ->maxLength(255),
-        Forms\Components\TextInput::make('email')
-          ->email()
-          ->required()
-          ->maxLength(255),
-        Forms\Components\DateTimePicker::make('email_verified_at'),
-        Forms\Components\TextInput::make('password')
-          ->password()
-          ->required()
-          ->maxLength(255),
-        Forms\Components\Textarea::make('two_factor_secret')
-          ->columnSpanFull(),
-        Forms\Components\Textarea::make('two_factor_recovery_codes')
-          ->columnSpanFull(),
-        Forms\Components\DateTimePicker::make('two_factor_confirmed_at'),
-        Forms\Components\TextInput::make('current_team_id')
-          ->numeric(),
-        Forms\Components\TextInput::make('profile_photo_path')
-          ->maxLength(2048),
-        Forms\Components\Toggle::make('status')
-          ->required(),
+
+        Forms\Components\Section::make()
+          ->schema([
+            Forms\Components\TextInput::make('name')
+              ->label(trans('pages-users::page.label.name'))
+              ->required()
+              ->maxLength(255),
+            Forms\Components\TextInput::make('email')
+              ->label(trans('pages-users::page.label.email'))
+              ->email()
+              ->unique(ignoreRecord: true)
+              ->required()
+              ->maxLength(255),
+            Forms\Components\TextInput::make('phone')
+              ->label(trans('pages-users::page.label.phone'))
+              ->nullable()
+              ->unique(ignoreRecord: true)
+              ->tel()
+              ->maxLength(25),
+          ])->columns(3),
+
+        Forms\Components\Grid::make(2)
+          ->schema([
+            Forms\Components\Section::make()
+              ->schema([
+
+                Forms\Components\FileUpload::make('profile_photo_path')
+                  ->label(trans('pages-users::page.label.profile_photo_path'))
+                  ->avatar()
+                  ->image()
+                  ->disk('public')
+                  ->directory('profile-photos')
+                  ->visibility('public')
+                  ->rules(['nullable', 'mimes:jpg,jpeg,png', 'max:2048'])
+                  ->extraAttributes(['class' => 'flex items-center justify-center']),
+
+              ])->columnSpan(1),
+
+            Forms\Components\Section::make()
+              ->schema([
+
+                Forms\Components\ToggleButtons::make('status')
+                  ->label(trans('pages-users::page.label.status'))
+                  ->inline()
+                  ->options(AccountStatus::class)
+                  ->required(),
+
+                Forms\Components\Select::make('roles')
+                  ->label(trans('pages-users::page.label.roles'))
+                  ->relationship(name: 'roles', titleAttribute: 'name')
+                  ->getOptionLabelFromRecordUsing(
+                    fn(Model $record) => UserRole::from($record->name)->getLabel()
+                  )
+                  ->searchable()
+                  ->preload()
+                  ->required(),
+
+              ])->columnSpan(1),
+          ]),
+
       ]);
   }
 
@@ -68,31 +113,41 @@ class UserResource extends Resource implements HasShieldPermissions
   {
     return $table
       ->columns([
-        Tables\Columns\TextColumn::make('uuid')
-          ->label('UUID')
-          ->searchable(),
+        Tables\Columns\ImageColumn::make('profile_photo_url')
+          ->label(trans('pages-users::page.label.profile_photo_path'))
+          ->circular(),
         Tables\Columns\TextColumn::make('name')
+          ->label(trans('pages-users::page.label.name'))
           ->searchable(),
         Tables\Columns\TextColumn::make('email')
+          ->label(trans('pages-users::page.label.email'))
           ->searchable(),
+        Tables\Columns\TextColumn::make('phone')
+          ->label(trans('pages-users::page.label.phone'))
+          ->searchable()
+          ->getStateUsing(fn(Model $record) => $record->phone ?: '-'),
+        Tables\Columns\TextColumn::make('roles.name')
+          ->badge()
+          ->getStateUsing(function (Model $record) {
+            return $record->roles->map(function ($role) {
+              return UserRole::from($role->getRawOriginal('name'))->getLabel();
+            })->implode(', ') ?: '-';
+          }),
         Tables\Columns\TextColumn::make('email_verified_at')
+          ->label(trans('pages-users::page.label.email_verified_at'))
           ->dateTime()
-          ->sortable(),
-        Tables\Columns\TextColumn::make('two_factor_confirmed_at')
-          ->dateTime()
-          ->sortable(),
-        Tables\Columns\TextColumn::make('current_team_id')
-          ->numeric()
-          ->sortable(),
-        Tables\Columns\TextColumn::make('profile_photo_path')
-          ->searchable(),
-        Tables\Columns\IconColumn::make('status')
-          ->boolean(),
+          ->sortable()
+          ->toggleable(isToggledHiddenByDefault: true),
+        Tables\Columns\TextColumn::make('status')
+          ->label(trans('pages-users::page.label.status'))
+          ->badge(),
         Tables\Columns\TextColumn::make('created_at')
+          ->label(trans('pages-users::page.label.created_at'))
           ->dateTime()
           ->sortable()
           ->toggleable(isToggledHiddenByDefault: true),
         Tables\Columns\TextColumn::make('updated_at')
+          ->label(trans('pages-users::page.label.updated_at'))
           ->dateTime()
           ->sortable()
           ->toggleable(isToggledHiddenByDefault: true),
@@ -101,13 +156,44 @@ class UserResource extends Resource implements HasShieldPermissions
         //
       ])
       ->actions([
-        Tables\Actions\EditAction::make(),
+        Tables\Actions\ActionGroup::make([
+          Tables\Actions\ViewAction::make()
+            ->iconSize('sm')
+            ->color('info'),
+          Tables\Actions\EditAction::make()
+            ->color('warning')
+            ->icon('heroicon-m-pencil')
+            ->iconSize('sm')
+            ->visible(
+              fn(Model $record) => $record->roles->implode('name') !== UserRole::SuperAdmin->value
+            ),
+          Tables\Actions\DeleteAction::make()
+            ->iconSize('sm')
+            ->hidden(function (Model $record) {
+              $isSuperAdmin = $record->roles->contains('name', UserRole::SuperAdmin->value);
+              $isActive = $record->status->value !== AccountStatus::InActive->value;
+
+              return $isSuperAdmin || ($isActive && !$isSuperAdmin);
+            })
+            ->successNotification(
+              Notification::make()
+                ->success()
+                ->title(trans('notification.delete.title'))
+                ->body(trans('notification.delete.body', ['label' => trans('pages-users::page.resource.label.user')]))
+                ->send(),
+            ),
+        ])
+          ->button()
+          ->size(ActionSize::Small)
+          ->icon('heroicon-m-ellipsis-vertical'),
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
           Tables\Actions\DeleteBulkAction::make(),
         ]),
-      ]);
+      ])
+      ->defaultPaginationPageOption(5)
+      ->recordUrl(null);
   }
 
   public static function getRelations(): array

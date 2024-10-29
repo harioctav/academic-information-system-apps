@@ -8,6 +8,7 @@ use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use BezhanSalleh\FilamentShield\Forms\ShieldSelectAllToggle;
 use App\Filament\Resources\Shield\RoleResource\Pages;
+use App\Models\Role;
 use BezhanSalleh\FilamentShield\Support\Utils;
 use Filament\Forms;
 use Filament\Forms\Components\Component;
@@ -16,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -42,11 +44,15 @@ class RoleResource extends Resource implements HasShieldPermissions
           ->schema([
             Forms\Components\Section::make()
               ->schema([
-                Forms\Components\TextInput::make('name')
+                Forms\Components\Select::make('name')
                   ->label(__('filament-shield::filament-shield.field.name'))
+                  ->options(static::getOptionsForName())
+                  ->enum(UserRole::class)
                   ->unique(ignoreRecord: true)
                   ->required()
-                  ->maxLength(255),
+                  ->preload()
+                  ->searchable()
+                  ->disabled(fn($context) => $context === 'edit'),
 
                 Forms\Components\TextInput::make('guard_name')
                   ->label(__('filament-shield::filament-shield.field.guard_name'))
@@ -86,7 +92,7 @@ class RoleResource extends Resource implements HasShieldPermissions
         Tables\Columns\TextColumn::make('name')
           ->badge()
           ->label(__('filament-shield::filament-shield.column.name'))
-          ->formatStateUsing(fn($state): string => Str::headline($state))
+          ->formatStateUsing(fn($state): string => UserRole::from($state)->getLabel())
           ->colors(['primary'])
           ->searchable(),
         Tables\Columns\TextColumn::make('guard_name')
@@ -152,11 +158,6 @@ class RoleResource extends Resource implements HasShieldPermissions
       'view' => Pages\ViewRole::route('/{record}'),
       'edit' => Pages\EditRole::route('/{record}/edit'),
     ];
-  }
-
-  public static function getRecordTitleAttribute(): string
-  {
-    return 'name';
   }
 
   public static function getCluster(): ?string
@@ -290,6 +291,21 @@ class RoleResource extends Resource implements HasShieldPermissions
         );
       }
     }
+  }
+
+  public static function getOptionsForName()
+  {
+    // Get existing role names from the roles table
+    $existingRoles = Role::pluck('name')->toArray();
+
+    // Create filtered options by removing existing roles
+    return Collection::make(UserRole::cases())
+      ->reject(function (UserRole $enum) use ($existingRoles) {
+        return in_array($enum->value, $existingRoles);
+      })
+      ->mapWithKeys(fn(UserRole $enum) => [
+        $enum->value => $enum->getLabel()
+      ]);
   }
 
   public static function getPageOptions(): array

@@ -4,17 +4,21 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-use App\Traits\HasUuid;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Enums\AccountStatus;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Ramsey\Uuid\Uuid as Generator;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser, HasAvatar
 {
   use HasApiTokens;
 
@@ -23,8 +27,29 @@ class User extends Authenticatable
   use HasProfilePhoto;
   use Notifiable;
   use TwoFactorAuthenticatable;
-  use HasUuid;
   use HasRoles;
+
+  public function canAccessPanel(Panel $panel): bool
+  {
+    return $this->status->value === AccountStatus::Active->value;
+  }
+
+  protected static function boot()
+  {
+    parent::boot();
+
+    static::creating(function ($user) {
+      $user->uuid = Generator::uuid4()->toString();
+    });
+
+    static::deleting(function ($user) {
+      if ($user->profile_photo_path) {
+        if (Storage::disk('public')->exists($user->profile_photo_path)) {
+          Storage::disk('public')->delete($user->profile_photo_path);
+        }
+      }
+    });
+  }
 
   /**
    * The attributes that are mass assignable.
@@ -36,7 +61,9 @@ class User extends Authenticatable
     'name',
     'email',
     'password',
+    'phone',
     'status',
+    'profile_photo_path',
   ];
 
   /**
@@ -70,6 +97,7 @@ class User extends Authenticatable
     return [
       'email_verified_at' => 'datetime',
       'password' => 'hashed',
+      'status' => AccountStatus::class
     ];
   }
 
@@ -79,5 +107,10 @@ class User extends Authenticatable
   public function getRouteKeyName(): string
   {
     return 'uuid';
+  }
+
+  public function getFilamentAvatarUrl(): ?string
+  {
+    return $this->profile_photo_url;
   }
 }

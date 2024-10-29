@@ -6,4 +6,15 @@ return  [
   'nav.user.icon' => 'heroicon-o-users',
   'resource.label.user' => 'Pengguna',
   'resource.label.users' => 'Pengguna',
+
+  // Resources
+  'label.name' => 'Nama Lengkap',
+  'label.email' => 'Surel',
+  'label.phone' => 'Telepon',
+  'label.status' => 'Status Akun',
+  'label.roles' => 'Peran Pengguna',
+  'label.profile_photo_path' => 'Foto Profil',
+  'label.email_verified_at' => 'Verifikasi Pada',
+  'label.created_at' => 'Dibuat Pada',
+  'label.updated_at' => 'Diubah Pada',
 ];
