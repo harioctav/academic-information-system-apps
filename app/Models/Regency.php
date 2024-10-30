@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RegencyType;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,18 @@ class Regency extends Model
   protected $with = [
     'province'
   ];
+
+  /**
+   * Get the attributes that should be cast.
+   *
+   * @return array<string, string>
+   */
+  protected function casts(): array
+  {
+    return [
+      'type' => RegencyType::class
+    ];
+  }
 
   /**
    * Get the route key for the model.
@@ -80,6 +93,6 @@ class Regency extends Model
    */
   public function getFormattedNameAttribute(): string
   {
-    return "{$this->type} {$this->name}";
+    return "{$this->type->value} {$this->name}";
   }
 }

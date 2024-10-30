@@ -49,7 +49,6 @@ class ProvinceResource extends Resource implements HasShieldPermissions
           ])->columns(),
       ]);
   }
-
   public static function table(Table $table): Table
   {
     return $table

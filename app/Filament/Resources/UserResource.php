@@ -105,7 +105,6 @@ class UserResource extends Resource implements HasShieldPermissions
 
       ]);
   }
-
   public static function table(Table $table): Table
   {
     return $table
