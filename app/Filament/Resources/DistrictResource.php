@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\RegencyResource\Pages;
-use App\Filament\Resources\RegencyResource\RelationManagers;
+use App\Filament\Resources\DistrictResource\Pages;
+use App\Filament\Resources\DistrictResource\RelationManagers;
+use App\Models\District;
 use App\Models\Regency;
-use App\Models\Province;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -14,13 +14,14 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Enums\RegencyType;
-use Illuminate\Support\Collection;
 
-class RegencyResource extends Resource implements HasShieldPermissions
+class DistrictResource extends Resource implements HasShieldPermissions
 {
-  protected static ?string $model = Regency::class;
+  protected static ?string $model = District::class;
+
+  protected static ?int $navigationSort = 3;
 
   public static function getPermissionPrefixes(): array
   {
@@ -40,28 +41,23 @@ class RegencyResource extends Resource implements HasShieldPermissions
       ->schema([
         Forms\Components\Section::make()
           ->schema([
-            Forms\Components\Select::make('province_id')
-              ->relationship(name: 'province', titleAttribute: 'name')
-              ->label(trans('pages-provinces::page.resource.label.province'))
+            Forms\Components\Select::make('regency_id')
+              ->relationship(
+                name: 'regency',
+                titleAttribute: 'name'
+              )
               ->searchable()
+              ->getOptionLabelFromRecordUsing(
+                fn(?Model $record) => $record->formatted_name
+              )
               ->preload()
               ->required(),
-          ]),
-        Forms\Components\Section::make()
-          ->schema([
             Forms\Components\TextInput::make('code')
-              ->label(trans('pages-regencies::page.label.code'))
               ->required()
-              ->maxLength(5),
+              ->maxLength(255),
             Forms\Components\TextInput::make('name')
-              ->label(trans('pages-regencies::page.label.name'))
               ->required()
-              ->maxLength(80),
-            Forms\Components\ToggleButtons::make('type')
-              ->label(trans('pages-regencies::page.label.type'))
-              ->inline()
-              ->options(RegencyType::class)
-              ->required(),
+              ->maxLength(255),
           ])->columns(3),
       ]);
   }
@@ -72,58 +68,55 @@ class RegencyResource extends Resource implements HasShieldPermissions
       ->columns([
         Tables\Columns\TextColumn::make('No')
           ->rowIndex(),
-        Tables\Columns\TextColumn::make('province.name')
+        Tables\Columns\TextColumn::make('regency.province.name')
           ->label(trans('pages-provinces::page.resource.label.province'))
-          ->numeric()
           ->sortable(),
-        Tables\Columns\TextColumn::make('type')
-          ->label(trans('pages-regencies::page.label.type'))
-          ->badge(),
+        Tables\Columns\TextColumn::make('regency.name')
+          ->label(trans('pages-regencies::page.resource.label.regency'))
+          ->sortable()
+          ->getStateUsing(
+            fn(?Model $record) => $record->regency->formatted_name
+          ),
         Tables\Columns\TextColumn::make('name')
-          ->label(trans('pages-regencies::page.label.name'))
+          ->label(trans('pages-districts::page.label.name'))
           ->searchable(),
+        Tables\Columns\TextColumn::make('villages_count')
+          ->label(trans('pages-districts::page.label.villages_count'))
+          ->counts('villages')
+          ->badge()
+          ->colors(['info']),
         Tables\Columns\TextColumn::make('code')
-          ->label(trans('pages-regencies::page.label.code'))
+          ->label(trans('pages-districts::page.label.code'))
           ->searchable()
           ->toggleable(isToggledHiddenByDefault: true),
         Tables\Columns\TextColumn::make('full_code')
-          ->label(trans('pages-regencies::page.label.full_code'))
+          ->label(trans('pages-districts::page.label.full_code'))
           ->searchable()
           ->toggleable(isToggledHiddenByDefault: true),
-        Tables\Columns\TextColumn::make('districts_count')
-          ->label(trans('pages-regencies::page.label.districts_count'))
-          ->counts('districts')
-          ->badge()
-          ->sortable()
-          ->colors(['info']),
         Tables\Columns\TextColumn::make('created_at')
-          ->label(trans('pages-regencies::page.label.created_at'))
+          ->label(trans('pages-districts::page.label.created_at'))
           ->dateTime()
           ->sortable()
           ->toggleable(isToggledHiddenByDefault: true),
         Tables\Columns\TextColumn::make('updated_at')
-          ->label(trans('pages-regencies::page.label.updated_at'))
+          ->label(trans('pages-districts::page.label.updated_at'))
           ->dateTime()
           ->sortable()
           ->toggleable(isToggledHiddenByDefault: true),
       ])
       ->filters([
-        Tables\Filters\SelectFilter::make('province')
-          ->label(trans('pages-regencies::page.label.filter.provinces'))
-          ->relationship('province', 'name')
-          ->searchable()
-          ->preload()
-          ->indicator(trans('pages-provinces::page.resource.label.province')),
-        Tables\Filters\SelectFilter::make('type')
-          ->label(trans('pages-regencies::page.label.filter.types'))
-          ->options(
-            Collection::make(RegencyType::cases())
-              ->mapWithKeys(
-                fn(RegencyType $enum) => [$enum->value => $enum->getLabel()]
-              )
+        Tables\Filters\SelectFilter::make('Regency')
+          ->relationship(
+            name: 'regency',
+            titleAttribute: 'name'
           )
-          ->indicator(trans('pages-regencies::page.label.type'))
-          ->native(false),
+          ->label(trans('pages-districts::page.label.filter.regencies'))
+          ->searchable()
+          ->getOptionLabelFromRecordUsing(
+            fn(?Model $record) => $record->formatted_name
+          )
+          ->preload()
+          ->indicator(trans('pages-regencies::page.resource.label.regency')),
       ])
       ->actions([
         Tables\Actions\ActionGroup::make([
@@ -135,9 +128,9 @@ class RegencyResource extends Resource implements HasShieldPermissions
             ->icon('heroicon-m-pencil')
             ->iconSize('sm')
             ->mutateFormDataUsing(function (array $data): array {
-              if (isset($data['province_id'])) {
-                $province = Province::findOrFail($data['province_id']);
-                $data['full_code'] = $province->code . $data['code'];
+              if (isset($data['regency_id'])) {
+                $regency = Regency::findOrFail($data['regency_id']);
+                $data['full_code'] = $regency->full_code . $data['code'];
               }
 
               return $data;
@@ -146,7 +139,7 @@ class RegencyResource extends Resource implements HasShieldPermissions
               Notification::make()
                 ->success()
                 ->title(trans('notification.edit.title'))
-                ->body(trans('notification.edit.body', ['label' => trans('pages-regencies::page.resource.label.regency')])),
+                ->body(trans('notification.edit.body', ['label' => trans('pages-districts::page.resource.label.district')])),
             ),
           Tables\Actions\DeleteAction::make()
             ->iconSize('sm')
@@ -154,7 +147,7 @@ class RegencyResource extends Resource implements HasShieldPermissions
               Notification::make()
                 ->success()
                 ->title(trans('notification.delete.title'))
-                ->body(trans('notification.delete.body', ['label' => trans('pages-regencies::page.resource.label.regency')])),
+                ->body(trans('notification.delete.body', ['label' => trans('pages-districts::page.resource.label.district')])),
             ),
         ])
           ->button()
@@ -168,7 +161,7 @@ class RegencyResource extends Resource implements HasShieldPermissions
               Notification::make()
                 ->success()
                 ->title(trans('notification.delete.title'))
-                ->body(trans('notification.delete.body', ['label' => trans('pages-regencies::page.resource.label.regency')])),
+                ->body(trans('notification.delete.body', ['label' => trans('pages-districts::page.resource.label.district')])),
             ),
         ]),
       ])
@@ -185,7 +178,7 @@ class RegencyResource extends Resource implements HasShieldPermissions
   public static function getPages(): array
   {
     return [
-      'index' => Pages\ListRegencies::route('/'),
+      'index' => Pages\ListDistricts::route('/'),
     ];
   }
 
@@ -196,22 +189,22 @@ class RegencyResource extends Resource implements HasShieldPermissions
 
   public static function getNavigationIcon(): string
   {
-    return trans('pages-regencies::page.nav.regency.icon');
+    return trans('pages-districts::page.nav.district.icon');
   }
 
   public static function getNavigationLabel(): string
   {
-    return trans('pages-regencies::page.nav.regency.label');
+    return trans('pages-districts::page.nav.district.label');
   }
 
   public static function getModelLabel(): string
   {
-    return trans('pages-regencies::page.resource.label.regency');
+    return trans('pages-districts::page.resource.label.district');
   }
 
   public static function getPluralModelLabel(): string
   {
-    return trans('pages-regencies::page.resource.label.regencies');
+    return trans('pages-districts::page.resource.label.districts');
   }
 
   public static function getNavigationBadge(): ?string

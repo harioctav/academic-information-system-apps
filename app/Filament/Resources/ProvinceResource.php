@@ -113,7 +113,13 @@ class ProvinceResource extends Resource implements HasShieldPermissions
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
-          Tables\Actions\DeleteBulkAction::make(),
+          Tables\Actions\DeleteBulkAction::make()
+            ->successNotification(
+              Notification::make()
+                ->success()
+                ->title(trans('notification.delete.title'))
+                ->body(trans('notification.delete.body', ['label' => trans('pages-provinces::page.resource.label.province')])),
+            ),
         ]),
       ])
       ->defaultPaginationPageOption(5);

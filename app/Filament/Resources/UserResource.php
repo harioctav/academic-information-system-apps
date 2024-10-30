@@ -205,7 +205,13 @@ class UserResource extends Resource implements HasShieldPermissions
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
-          Tables\Actions\DeleteBulkAction::make(),
+          Tables\Actions\DeleteBulkAction::make()
+            ->successNotification(
+              Notification::make()
+                ->success()
+                ->title(trans('notification.delete.title'))
+                ->body(trans('notification.delete.body', ['label' => trans('pages-users::page.resource.label.user')])),
+            ),
         ]),
       ])
       ->defaultPaginationPageOption(5)
