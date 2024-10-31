@@ -15,5 +15,5 @@ return [
   'label.total_course_credit' => 'Jumlah SKS',
   'label.created_at' => 'Dibuat Pada',
   'label.updated_at' => 'Diubah Pada',
-  'label.filter.degrees' => 'Filter by Degree',
+  'label.filter.degrees' => 'Filter berdasarkan Jenjang',
 ];

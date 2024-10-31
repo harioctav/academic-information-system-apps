@@ -13,6 +13,13 @@ return new class extends Migration
   {
     Schema::create('subjects', function (Blueprint $table) {
       $table->id();
+      $table->char('uuid')->index();
+      $table->string('code');
+      $table->string('name');
+      $table->string('course_credit');
+      $table->string('status');
+      $table->string('exam_time')->nullable();
+      $table->text('note')->nullable();
       $table->timestamps();
     });
   }

@@ -22,8 +22,6 @@ class MajorResource extends Resource implements HasShieldPermissions
 {
   protected static ?string $model = Major::class;
 
-  protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
   public static function getPermissionPrefixes(): array
   {
     return [
