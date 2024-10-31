@@ -20,9 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class DistrictResource extends Resource implements HasShieldPermissions
 {
   protected static ?string $model = District::class;
-
   protected static ?int $navigationSort = 3;
-
   public static function getPermissionPrefixes(): array
   {
     return [

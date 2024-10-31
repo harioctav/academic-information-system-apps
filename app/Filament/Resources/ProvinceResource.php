@@ -19,6 +19,7 @@ class ProvinceResource extends Resource implements HasShieldPermissions
 {
   protected static ?string $model = Province::class;
 
+  protected static ?int $navigationSort = 1;
   public static function getPermissionPrefixes(): array
   {
     return [

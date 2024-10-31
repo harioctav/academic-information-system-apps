@@ -10,6 +10,7 @@ export default {
         "./storage/framework/views/*.php",
         "./resources/views/**/*.blade.php",
         "./vendor/bezhansalleh/filament-language-switch/resources/views/language-switch.blade.php",
+        "./vendor/rappasoft/laravel-livewire-tables/resources/views/**/*.blade.php",
     ],
 
     theme: {
