@@ -39,6 +39,7 @@ class AdminPanelProvider extends PanelProvider
       ->font('Poppins')
       ->profile()
       ->spa()
+      ->databaseTransactions()
       ->brandLogo(fn() => view('components.brand-logo'))
       ->favicon(asset('assets/images/logos/logo.png'))
       ->sidebarFullyCollapsibleOnDesktop()
