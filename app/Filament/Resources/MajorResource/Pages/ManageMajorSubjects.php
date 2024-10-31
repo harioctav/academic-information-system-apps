@@ -36,14 +36,24 @@ class ManageMajorSubjects extends ManageRelatedRecords
             $record = $this->getMountedTableActionRecord();
 
             if ($record) {
-              return Subject::where('id', $record->subject_id)->pluck('name', 'id');
+              // Jika ada record, kembalikan subject dengan ID yang sama dengan record
+              return Subject::where('id', $record->subject_id)
+                ->get()
+                ->mapWithKeys(function ($subject) {
+                  return [$subject->id => $subject->code . ' - ' . $subject->name];
+                });
             }
 
+            // Jika tidak ada record, kembalikan subject yang tidak terkait dengan major
             return Subject::whereNotIn('id', function ($query) {
               $query->select('subject_id')
                 ->from('major_has_subjects')
                 ->where('major_id', $this->getOwnerRecord()->id);
-            })->pluck('name', 'id');
+            })
+              ->get()
+              ->mapWithKeys(function ($subject) {
+                return [$subject->id => $subject->code . ' - ' . $subject->name];
+              });
           })
           ->searchable()
           ->live()
@@ -146,28 +156,37 @@ class ManageMajorSubjects extends ManageRelatedRecords
           ),
       ])
       ->actions([
-        Tables\Actions\EditAction::make()
-          ->successNotification(
-            Notification::make()
-              ->success()
-              ->title(trans('notification.edit.title'))
-              ->body(
-                trans('pages-major-subjects::page.notification.edit', [
-                  'major' => $this->getOwnerRecord()->name
-                ])
-              ),
-          ),
-        Tables\Actions\DetachAction::make()
-          ->successNotification(
-            Notification::make()
-              ->success()
-              ->title(trans('notification.delete.title'))
-              ->body(
-                trans('pages-major-subjects::page.notification.delete', [
-                  'major' => $this->getOwnerRecord()->name
-                ])
-              ),
-          ),
+
+        Tables\Actions\ActionGroup::make([
+          Tables\Actions\EditAction::make()
+            ->color('warning')
+            ->icon('heroicon-m-pencil')
+            ->iconSize('sm')
+            ->successNotification(
+              Notification::make()
+                ->success()
+                ->title(trans('notification.edit.title'))
+                ->body(
+                  trans('pages-major-subjects::page.notification.edit', [
+                    'major' => $this->getOwnerRecord()->name
+                  ])
+                ),
+            ),
+          Tables\Actions\DetachAction::make()
+            ->successNotification(
+              Notification::make()
+                ->success()
+                ->title(trans('notification.delete.title'))
+                ->body(
+                  trans('pages-major-subjects::page.notification.delete', [
+                    'major' => $this->getOwnerRecord()->name
+                  ])
+                ),
+            ),
+        ])
+          ->button()
+          ->size('sm')
+          ->icon('heroicon-m-ellipsis-vertical'),
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([

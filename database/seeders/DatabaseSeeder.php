@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
       DistrictSeeder::class,
       VillageSeeder::class,
       UserSeeder::class,
-      MajorSubjectSeeder::class,
+      // MajorSubjectSeeder::class,
     ]);
   }
 }

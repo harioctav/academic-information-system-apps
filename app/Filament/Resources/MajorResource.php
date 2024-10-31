@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Enums\DegreeType;
 use App\Filament\Resources\MajorResource\Pages;
 use App\Filament\Resources\MajorResource\RelationManagers;
-use App\Filament\Resources\MajorResource\RelationManagers\SubjectsRelationManager;
 use Filament\Infolists\Infolist;
 use App\Models\Major;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
