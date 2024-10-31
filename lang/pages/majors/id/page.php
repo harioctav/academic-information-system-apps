@@ -16,4 +16,14 @@ return [
   'label.created_at' => 'Dibuat Pada',
   'label.updated_at' => 'Diubah Pada',
   'label.filter.degrees' => 'Filter berdasarkan Jenjang',
+  'label.filter.semester' => 'Filter berdasarkan Semester',
+
+  // Infolist
+  'infolist.description' => 'Detail data Program Studi :name',
+
+  // Validation Major Has Subjects
+  'validation.uniqe' => 'Beberapa matakuliah sudah dimiliki pada jurusan ini',
+  'validation.success' => 'Berhasil melampirkan matakuliah',
+  'validation.delete' => '',
+  'validation.delete.bulk' => '',
 ];

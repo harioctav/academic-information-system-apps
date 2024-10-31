@@ -40,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
       ->profile()
       ->spa()
       ->databaseTransactions()
+      ->readOnlyRelationManagersOnResourceViewPagesByDefault(false)
       ->brandLogo(fn() => view('components.brand-logo'))
       ->favicon(asset('assets/images/logos/logo.png'))
       ->sidebarFullyCollapsibleOnDesktop()

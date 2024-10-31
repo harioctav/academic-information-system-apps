@@ -5,6 +5,8 @@ namespace App\Filament\Resources;
 use App\Enums\DegreeType;
 use App\Filament\Resources\MajorResource\Pages;
 use App\Filament\Resources\MajorResource\RelationManagers;
+use App\Filament\Resources\MajorResource\RelationManagers\SubjectsRelationManager;
+use Filament\Infolists\Infolist;
 use App\Models\Major;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
@@ -17,10 +19,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
+use Filament\Infolists\Components;
+use Filament\Pages\SubNavigationPosition;
+use Filament\Resources\Pages\Page;
 
 class MajorResource extends Resource implements HasShieldPermissions
 {
   protected static ?string $model = Major::class;
+
+  protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
   public static function getPermissionPrefixes(): array
   {
@@ -148,6 +155,30 @@ class MajorResource extends Resource implements HasShieldPermissions
       ->defaultPaginationPageOption(5);
   }
 
+  public static function infolist(Infolist $infolist): Infolist
+  {
+    return $infolist
+      ->schema([
+        Components\Section::make(trans('pages-majors::page.resource.label.major'))
+          ->description(trans('pages-majors::page.infolist.description', ['name' => $infolist->getRecord()->name]))
+          ->icon('heroicon-o-exclamation-circle')
+          ->iconColor('info')
+          ->columns(4)
+          ->schema([
+            Components\TextEntry::make('code')
+              ->label(trans('pages-majors::page.label.code')),
+            Components\TextEntry::make('name')
+              ->label(trans('pages-majors::page.label.name')),
+            Components\TextEntry::make('total_course_credit')
+              ->label(trans('pages-majors::page.label.total_course_credit'))
+              ->getStateUsing(fn(?Model $record) => $record->total_course_credit ?: '-'),
+            Components\TextEntry::make('degree')
+              ->label(trans('pages-majors::page.label.degree'))
+              ->badge(),
+          ])
+      ]);
+  }
+
   public static function getRelations(): array
   {
     return [
@@ -159,7 +190,17 @@ class MajorResource extends Resource implements HasShieldPermissions
   {
     return [
       'index' => Pages\ListMajors::route('/'),
+      'view' => Pages\ViewMajor::route('/{record}'),
+      'subjects' => Pages\ManageMajorSubjects::route('/{record}/subjects'),
     ];
+  }
+
+  public static function getRecordSubNavigation(Page $page): array
+  {
+    return $page->generateNavigationItems([
+      Pages\ViewMajor::class,
+      Pages\ManageMajorSubjects::class,
+    ]);
   }
 
   public static function getNavigationGroup(): ?string
